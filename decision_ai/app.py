@@ -1,70 +1,56 @@
 import streamlit as st
+from openai import OpenAI
 
-st.set_page_config(page_title="Decision AI", page_icon="🧠", layout="centered")
+st.set_page_config(page_title="Decision AI", page_icon="🧠")
 
-st.title("🧠 Decision AI Assistant")
-st.subheader("Drone / Vehicle Real-Time Decision Support")
+st.title("🧠 AI Decision System")
+st.subheader("Real-Time Drone / Vehicle Decision Intelligence")
 
-st.write(
-    "Enter a real-world situation. The system will analyze the risk level and suggest the best action."
-)
+# 🔑 API KEY INPUT
+api_key = st.text_input("Enter your OpenAI API Key", type="password")
+
+client = None
+if api_key:
+    client = OpenAI(api_key=api_key)
 
 situation = st.text_area(
-    "Situation Input",
-    placeholder="Example: Obstacle detected ahead, battery at 15%, GPS signal weak.",
-    height=140
+    "Enter Situation",
+    placeholder="Obstacle detected ahead, battery at 15%, GPS signal weak"
 )
 
-def simple_decision_engine(user_input: str):
-    text = user_input.lower()
+def get_ai_decision(user_input):
+    prompt = f"""
+You are an intelligent control system for a drone or autonomous vehicle.
 
-    action = "Continue mission with caution."
-    risk = "Low"
-    reason = "No major threat indicators detected."
+Analyze the situation and respond in this format:
 
-    if "battery" in text:
-        if "10%" in text or "15%" in text or "low battery" in text:
-            action = "Return to base immediately."
-            risk = "High"
-            reason = "Battery level is critically low for safe continuation."
+Risk Level:
+Recommended Action:
+Reason:
 
-    if "obstacle" in text or "collision" in text:
-        action = "Slow down, avoid obstacle, and re-route if needed."
-        risk = "Medium"
-        reason = "Obstacle detected in path; navigation adjustment required."
+Situation: {user_input}
+"""
 
-    if "gps signal weak" in text or "signal weak" in text or "communication loss" in text:
-        action = "Switch to safe mode and stabilize before continuing."
-        risk = "High"
-        reason = "Weak communication or navigation signal increases operational risk."
+    response = client.chat.completions.create(
+        model="gpt-4.1-mini",
+        messages=[{"role": "user", "content": prompt}]
+    )
 
-    if ("battery" in text and ("15%" in text or "10%" in text or "low battery" in text)
-        and ("obstacle" in text or "collision" in text)):
-        action = "Abort mission and return to base using safest available route."
-        risk = "Critical"
-        reason = "Low battery combined with obstacle risk makes continuation unsafe."
+    return response.choices[0].message.content
 
-    if ("battery" in text and ("15%" in text or "10%" in text or "low battery" in text)
-        and ("gps signal weak" in text or "signal weak" in text or "communication loss" in text)):
-        action = "Land at the nearest safe location or return immediately if stable."
-        risk = "Critical"
-        reason = "Low battery and weak signal together create severe mission risk."
-
-    return risk, action, reason
-
-if st.button("Analyze Situation"):
-    if not situation.strip():
-        st.warning("Please enter a situation first.")
+if st.button("Analyze with AI"):
+    if not api_key:
+        st.warning("Enter API key first")
+    elif not situation.strip():
+        st.warning("Enter a situation")
     else:
-        risk, action, reason = simple_decision_engine(situation)
+        result = get_ai_decision(situation)
 
-        st.markdown("### Result")
-        st.write(f"**Risk Level:** {risk}")
-        st.write(f"**Recommended Action:** {action}")
-        st.write(f"**Reason:** {reason}")
+        st.markdown("### AI Output")
+        st.write(result)
 
         st.markdown("### System Thinking")
         st.write(
-            "This simulates how an intelligent system can combine environmental input, "
-            "operational constraints, and safety logic to support real-time decisions."
+            "This simulates a decision layer in an intelligent system, "
+            "where AI processes environmental inputs and suggests optimal actions."
         )
